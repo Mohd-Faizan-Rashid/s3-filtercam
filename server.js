@@ -19,6 +19,16 @@ const s3Client = new S3Client({
 
 app.use(express.static('public'));
 
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+  res.sendFile('index.html', { root: './public' });
+});
+
+// Catch-all route to serve index.html for any unmatched routes
+app.get('*', (req, res) => {
+  res.sendFile('index.html', { root: './public' });
+});
+
 app.post('/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
