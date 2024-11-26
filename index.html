@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Filter App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+        }
+        #video, #canvas {
+            width: 640px;
+            height: 480px;
+            border: 1px solid #ccc;
+        }
+        #captureBtn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #filterSelect {
+            margin-top: 10px;
+            padding: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <video id="video" autoplay></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <br>
+        <select id="filterSelect">
+            <option value="none">No Filter</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="negative">Negative</option>
+            <option value="sharp">Sharp</option>
+        </select>
+        <br>
+        <button id="captureBtn">Capture and Upload</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
