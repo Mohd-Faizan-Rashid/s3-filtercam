@@ -2,16 +2,107 @@ const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const captureBtn = document.getElementById('captureBtn');
 const filterSelect = document.getElementById('filterSelect');
+const cameraSelect = document.getElementById('cameraSelect');
+const ipCamUrl = document.getElementById('ipCamUrl');
+const connectBtn = document.getElementById('connectBtn');
+const startCameraBtn = document.getElementById('startCameraBtn');
+const stopCameraBtn = document.getElementById('stopCameraBtn');
 const ctx = canvas.getContext('2d');
 
+let currentStream = null;
+let isStreamActive = false;
+
+// Handle camera selection
+cameraSelect.addEventListener('change', () => {
+    const selectedCamera = cameraSelect.value;
+    if (selectedCamera === 'ipcam') {
+        ipCamUrl.classList.remove('hidden');
+        connectBtn.classList.remove('hidden');
+    } else {
+        ipCamUrl.classList.add('hidden');
+        connectBtn.classList.add('hidden');
+    }
+});
+
+// Handle IP camera connection
+connectBtn.addEventListener('click', () => {
+    setupCamera('ipcam');
+});
+
+// Start camera button
+startCameraBtn.addEventListener('click', () => {
+    if (!isStreamActive) {
+        setupCamera(cameraSelect.value);
+    }
+});
+
+// Stop camera button
+stopCameraBtn.addEventListener('click', () => {
+    stopCamera();
+});
+
 // Access the camera
-navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
+async function setupCamera(source) {
+    try {
+        if (currentStream) {
+            stopCamera();
+        }
+
+        let stream;
+        switch (source) {
+            case 'device':
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                break;
+            case 'droidcam':
+                // Note: This might not work as expected due to browser security restrictions
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: { exact: 'http://127.0.0.1:4747/video' }
+                    }
+                });
+                break;
+            case 'ipcam':
+                const url = ipCamUrl.value;
+                if (!url) {
+                    throw new Error('Please enter a valid IP camera URL');
+                }
+                video.src = url;
+                await video.play();
+                isStreamActive = true;
+                return; // No need to set srcObject for IP camera
+            default:
+                throw new Error('Invalid camera source');
+        }
+
         video.srcObject = stream;
-    })
-    .catch(err => {
-        console.error("Error accessing the camera", err);
-    });
+        currentStream = stream;
+        await video.play();
+        isStreamActive = true;
+        // Set canvas size after video is loaded
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        console.log('Camera accessed successfully');
+    } catch (err) {
+        console.error("Error accessing the camera:", err);
+        alert(`Error accessing the camera: ${err.message}. Please ensure you've granted camera permissions and try again.`);
+    }
+}
+
+function stopCamera() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
+    video.srcObject = null;
+    video.src = '';
+    isStreamActive = false;
+    console.log('Camera stopped');
+}
 
 // Apply selected filter
 function applyFilter(imageData, filter) {
@@ -67,6 +158,11 @@ function applyFilter(imageData, filter) {
 
 // Capture and upload image
 captureBtn.addEventListener('click', () => {
+    if (!isStreamActive) {
+        alert('Camera is not active. Please start the camera first.');
+        return;
+    }
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
@@ -84,20 +180,30 @@ captureBtn.addEventListener('click', () => {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('Image uploaded successfully:', data.url);
             alert('Image uploaded successfully!');
         })
         .catch(error => {
             console.error('Error uploading image:', error);
-            alert('Error uploading image. Please try again.');
+            alert(`Error uploading image. Please try again. Details: ${error.message}`);
         });
     }, 'image/jpeg');
 });
 
 // Apply filter in real-time
 function applyRealTimeFilter() {
+    if (!isStreamActive) {
+        requestAnimationFrame(applyRealTimeFilter);
+        return;
+    }
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
@@ -109,6 +215,16 @@ function applyRealTimeFilter() {
     
     requestAnimationFrame(applyRealTimeFilter);
 }
+
+// Initialize camera on page load
+window.addEventListener('load', async () => {
+    try {
+        await setupCamera('device');
+    } catch (err) {
+        console.error("Error initializing camera:", err);
+        alert(`Error initializing camera: ${err.message}. Please click 'Start Camera' to try again.`);
+    }
+});
 
 // Enable real-time filter preview
 applyRealTimeFilter();
