@@ -21,12 +21,12 @@ app.use(express.static('public'));
 
 // Serve index.html for the root route
 app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: './public' });
+  res.sendFile('index.html', { root: './' });
 });
 
 // Catch-all route to serve index.html for any unmatched routes
 app.get('*', (req, res) => {
-  res.sendFile('index.html', { root: './public' });
+  res.sendFile('index.html', { root: './' });
 });
 
 app.post('/upload', upload.single('image'), async (req, res) => {
